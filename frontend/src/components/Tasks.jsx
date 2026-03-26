@@ -5,13 +5,13 @@ export default function Tasks({ onLogout, isAdmin }) {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
 
-  // Edit states (FIXED)
+  // Edit states 
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
   const [editingTaskDescription, setEditingTaskDescription] = useState("");
   const [editingTaskCompleted, setEditingTaskCompleted] = useState(false);
 
-  // ---------------- Load Tasks ----------------
+  // Load Tasks 
   const loadTasks = async () => {
     try {
       const url = isAdmin ? "/tasks/all" : "/tasks/";
@@ -27,7 +27,7 @@ export default function Tasks({ onLogout, isAdmin }) {
     loadTasks();
   }, [isAdmin]);
 
-  // ---------------- Create ----------------
+  // Create
   const createTask = async () => {
     if (!newTask.trim()) return;
 
@@ -45,7 +45,7 @@ export default function Tasks({ onLogout, isAdmin }) {
     }
   };
 
-  // ---------------- Start Edit ----------------
+  // Start Edit 
   const startEdit = (task) => {
     setEditingTaskId(task.id);
     setEditingTaskTitle(task.title);
@@ -53,7 +53,7 @@ export default function Tasks({ onLogout, isAdmin }) {
     setEditingTaskCompleted(task.completed || false);
   };
 
-  // ---------------- Update ----------------
+  //  Update 
   const updateTask = async () => {
     if (!editingTaskId) return;
 
@@ -77,7 +77,7 @@ export default function Tasks({ onLogout, isAdmin }) {
     }
   };
 
-  // ---------------- Toggle Completed ----------------
+  // Toggle Completed 
   const toggleCompleted = async (task) => {
     try {
       await api.put(`/tasks/${task.id}`, {
@@ -90,7 +90,7 @@ export default function Tasks({ onLogout, isAdmin }) {
     }
   };
 
-  // ---------------- Delete ----------------
+  // Delete 
   const deleteTask = async (taskId) => {
     try {
       await api.delete(`/tasks/${taskId}`);
@@ -101,7 +101,7 @@ export default function Tasks({ onLogout, isAdmin }) {
     }
   };
 
-  // ---------------- UI ----------------
+  //  UI 
   return (
     <div>
       <h2>{isAdmin ? "All Tasks (Admin)" : "Your Tasks"}</h2>
