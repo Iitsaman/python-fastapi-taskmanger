@@ -3,15 +3,15 @@
 
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-from app.db import Base
+from app.db import Base  # declarative base
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True)
-    password = Column(String)
-    role = Column(String, default="user")
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    password = Column(String(512), nullable=False)
+    role = Column(String(50), default="user", nullable=False)
 
-
-    tasks = relationship("Task", back_populates="owner")
+    # Relationship to tasks
+    tasks = relationship("Task", back_populates="owner", cascade="all, delete-orphan")

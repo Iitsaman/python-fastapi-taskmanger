@@ -1,9 +1,10 @@
 
 # tasks model
 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
-from app.db import Base
+from app.db import Base 
+
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -12,6 +13,10 @@ class Task(Base):
     title = Column(String, nullable=False)
     description = Column(String, default="")
     completed = Column(Boolean, default=False)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="tasks")
+
+
+    
