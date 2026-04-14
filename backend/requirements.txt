@@ -1,5 +1,5 @@
 
-fastapi
+fastapi[all]
 uvicorn
 sqlalchemy
 python-jose[cryptography]
@@ -11,3 +11,11 @@ passlib
 
 asyncpg
 psycopg2-binary
+
+prometheus-fastapi-instrumentator
+prometheus-client
+
+
+
+
+# SELECT * FROM users;

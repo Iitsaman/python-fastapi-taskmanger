@@ -8,6 +8,9 @@ from app.schema.schemas import UserCreate
 from app.utils.auth import hash_password, verify_password, create_token, verify_token
 import logging
 
+
+from app.metrics import users_registered, user_logins, failed_requests
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Auth"])
@@ -18,7 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 # JWT-protected route
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    payload = create_token.verify_token(token)
+    payload = verify_token(token)
     if not payload or "user_id" not in payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
@@ -42,28 +45,65 @@ def require_role(role: str):
 # Register
 @router.post("/register")
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+   try:
+   # # Check if user already exists 
     result = await db.execute(select(User).filter(User.email == user.email))
     existing_user = result.scalars().first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # Create new user
     new_user = User(email=user.email, password=hash_password(user.password), role="user")
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+    
+    # Increment Prometheus counter
+    
+    users_registered.inc()
     return {"message": "User created successfully", "user_id": new_user.id}
+
+   except HTTPException:
+        # Raise HTTPExceptions as-is (do not increment failed_requests for known errors)
+    raise
+   except Exception:
+        # Track unexpected failures
+        failed_requests.inc()
+   raise HTTPException(status_code=500, detail="Internal server error")        
+
+
 
 
 # Login
+
+
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).filter(User.email == form_data.username))
-    user = result.scalars().first()
-    if not user or not verify_password(form_data.password, user.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    try:
+        # Fetch user by email
+        result = await db.execute(select(User).filter(User.email == form_data.username))
+        user = result.scalars().first()
 
-    token = create_token({"user_id": user.id, "role": user.role})
-    return {"access_token": token, "token_type": "bearer", "role": user.role}
+        # Validate credentials
+        if not user or not verify_password(form_data.password, user.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+
+        # Successful login
+        token = create_token({"user_id": user.id, "role": user.role})
+        
+        user_logins.inc()  # Increment Prometheus counter
+        return {"access_token": token, "token_type": "bearer", "role": user.role}
+
+    except HTTPException:
+        # Known errors like invalid credentials are not counted as failed requests
+        raise
+    except Exception:
+        # Unexpected failures increment failed_requests
+        failed_requests.inc()
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Profile

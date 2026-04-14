@@ -1,0 +1,176 @@
+{
+  "id": null,
+  "title": "FastAPI Monitoring - Clean Stable Metrics",
+  "schemaVersion": 30,
+  "version": 2,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total Users Registered",
+      "targets": [
+        {
+          "expr": "users_registered_total"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total User Logins",
+      "targets": [
+        {
+          "expr": "user_logins_total"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Tasks Created",
+      "targets": [
+        {
+          "expr": "tasks_created_total"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Tasks Updated",
+      "targets": [
+        {
+          "expr": "tasks_updated_total"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Tasks Deleted",
+      "targets": [
+        {
+          "expr": "tasks_deleted_total"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Failed Requests",
+      "targets": [
+        {
+          "expr": "failed_requests_total"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "type": "graph",
+      "title": "Requests per Second",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "legendFormat": "{{handler}}"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "HTTP Request Duration (avg seconds)",
+      "targets": [
+        {
+          "expr": "rate(http_request_duration_seconds_sum[1m]) / rate(http_request_duration_seconds_count[1m])",
+          "legendFormat": "{{handler}}"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "5xx Error Rate",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m]))",
+          "legendFormat": "5xx Errors/sec"
+        }
+      ]
+    }
+  ]
+}

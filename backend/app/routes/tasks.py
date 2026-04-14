@@ -9,26 +9,41 @@ from app.schema.tasks import TaskCreate, TaskUpdate, TaskResponse
 
 from app.routes.auth import get_current_user, require_role
 
+from app.metrics import tasks_created, failed_requests ,tasks_updated, tasks_deleted 
+
+import logging
+
 router = APIRouter(tags=["Tasks"])
 
 
 # Create Task
+
 @router.post("/", response_model=TaskResponse)
 async def create_task(
     task: TaskCreate,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    new_task = Task(
-        title=task.title,
-        description=task.description,
-        owner_id=current_user.id
-    )
-    db.add(new_task)
-    await db.commit()
-    await db.refresh(new_task)
-    return new_task
+    try:
+        # Create a new task
+        new_task = Task(
+            title=task.title,
+            description=task.description,
+            owner_id=current_user.id
+        )
+        db.add(new_task)
+        await db.commit()
+        await db.refresh(new_task)
 
+        # Increment Prometheus counter
+        tasks_created.inc()
+
+        return new_task
+
+
+    except Exception as e:
+        failed_requests.inc()
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 # List Own Tasks
 @router.get("/", response_model=List[TaskResponse])
@@ -77,41 +92,79 @@ async def update_task(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    result = await db.execute(select(Task).filter(Task.id == task_id))
-    task = result.scalars().first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+    try:
+        # Fetch task
+        result = await db.execute(select(Task).filter(Task.id == task_id))
+        task = result.scalars().first()
+        if not task:
+            failed_requests.inc()
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    if task.owner_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Forbidden")
+        # Check ownership / admin rights
+        if task.owner_id != current_user.id and current_user.role != "admin":
+            failed_requests.inc()
+            raise HTTPException(status_code=403, detail="Forbidden")
 
-    if task_update.title is not None:
-        task.title = task_update.title
-    if task_update.description is not None:
-        task.description = task_update.description
-    if task_update.completed is not None:
-        task.completed = task_update.completed
+        # Update fields if provided
+        if task_update.title is not None:
+            task.title = task_update.title
+        if task_update.description is not None:
+            task.description = task_update.description
+        if task_update.completed is not None:
+            task.completed = task_update.completed
 
-    await db.commit()
-    await db.refresh(task)
-    return task
+        await db.commit()
+        await db.refresh(task)
+
+        # Increment Prometheus counter
+        tasks_updated.inc()
+
+        return task
+
+    except HTTPException:
+        
+        raise
+    except Exception as e:
+        failed_requests.inc()
+        logging.error(f"Failed to update task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
+
+
 
 # Delete Task
+
 @router.delete("/{task_id}")
 async def delete_task(
     task_id: int,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    result = await db.execute(select(Task).filter(Task.id == task_id))
-    task = result.scalars().first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+    try:
+        # Fetch the task
+        result = await db.execute(select(Task).filter(Task.id == task_id))
+        task = result.scalars().first()
+        if not task:
+            failed_requests.inc()
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    if task.owner_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Forbidden")
+        # Check ownership / admin rights
+        if task.owner_id != current_user.id and current_user.role != "admin":
+            failed_requests.inc()
+            raise HTTPException(status_code=403, detail="Forbidden")
 
-    await db.delete(task)  # Async delete
-    await db.commit()
-    return {"message": "Task deleted successfully"}
+        # Delete the task
+        await db.delete(task)
+        await db.commit()
 
+        # Increment Prometheus counter
+        tasks_deleted.inc()
+
+        return {"message": "Task deleted successfully"}
+
+    except HTTPException:
+        # Already counted failed_requests for 404/403 above
+        raise
+    except Exception as e:
+        failed_requests.inc()
+        logging.error(f"Failed to delete task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error") from e

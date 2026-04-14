@@ -5,10 +5,12 @@ from app.routes import auth, tasks
 from app.admin import create_admin_if_not_exists
 import logging
 
+from prometheus_fastapi_instrumentator import Instrumentator
 
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Async Task Manager API")
+
 
 # React frontend CORS
 origins = ["http://localhost:5173"]
@@ -40,6 +42,15 @@ async def startup_event():
     # Create admin user if not exists (async)
     await create_admin_if_not_exists()
     logging.info("Admin check completed")
+
+
+# Prometheus  Instrumentation
+#instrumentator = Instrumentator()
+instrumentator = Instrumentator(
+    should_group_status_codes=True,  
+    excluded_handlers=["/metrics"]   
+)
+instrumentator.instrument(app).expose(app, endpoint="/metrics")
 
 
 
