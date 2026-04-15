@@ -17,5 +17,8 @@ prometheus-client
 
 
 
+pydantic-settings
+
+
 
 # SELECT * FROM users;
